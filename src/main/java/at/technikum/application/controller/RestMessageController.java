@@ -4,8 +4,8 @@ import at.technikum.application.exception.ClientException;
 import at.technikum.application.model.Message;
 import at.technikum.application.repository.MessageRepository;
 import at.technikum.application.model.PlainMessage;
-import at.technikum.http.HttpStatus;
-import at.technikum.http.Response;
+import at.technikum.httpserver.HttpStatus;
+import at.technikum.httpserver.Response;
 
 import java.util.List;
 

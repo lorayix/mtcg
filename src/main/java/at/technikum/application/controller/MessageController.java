@@ -1,7 +1,7 @@
 package at.technikum.application.controller;
 
 import at.technikum.application.model.PlainMessage;
-import at.technikum.http.Response;
+import at.technikum.httpserver.Response;
 
 public interface MessageController {
     Response getMessages();

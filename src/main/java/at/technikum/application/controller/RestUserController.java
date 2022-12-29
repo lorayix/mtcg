@@ -3,8 +3,8 @@ package at.technikum.application.controller;
 import at.technikum.application.model.Credentials;
 import at.technikum.application.model.User;
 import at.technikum.application.repository.UserRepository;
-import at.technikum.http.HttpStatus;
-import at.technikum.http.Response;
+import at.technikum.httpserver.HttpStatus;
+import at.technikum.httpserver.Response;
 
 public class RestUserController {
 

@@ -1,0 +1,26 @@
+version: '3.1'
+
+services:
+  db:
+    image: 'postgres:latest'
+    environment:
+      POSTGRES_USER: 'mctg_admin'
+      POSTGRES_PASSWORD: "mctg123"
+      POSTGRES_DB: "mctg"
+
+    ports:
+      - '5432:5432'
+
+    volumes:
+      - 'db_mtcg:/var/lib/postgresql/data'
+
+  adminer:
+    image: 'adminer'
+    ports:
+      - '8080:8080'
+    restart: always
+
+volumes:
+  db_mtcg:
+    driver: local
+# Use postgres/example user/password credentials
