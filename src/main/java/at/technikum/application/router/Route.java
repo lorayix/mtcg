@@ -1,21 +1,10 @@
 package at.technikum.application.router;
 
-public class Route {
-    private final String path;
-    private final String httpVerb;
+import at.technikum.httpserver.RequestContext;
+import at.technikum.httpserver.Response;
 
-    public Route(String path, String httpVerb){
-        this.path = path;
-        this.httpVerb = httpVerb;
-    }
-
-    public String getPath() {
-        return path;
-    }
-
-    public String getHttpVerb() {
-        return httpVerb;
-    }
+public interface Route {
+    Response process(RequestContext requestContext);
 
 }
 

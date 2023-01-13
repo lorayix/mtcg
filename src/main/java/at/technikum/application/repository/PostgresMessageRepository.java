@@ -1,6 +1,7 @@
 package at.technikum.application.repository;
 
 import at.technikum.application.config.DataSource;
+import at.technikum.application.config.DbConnector;
 import at.technikum.application.model.Message;
 import at.technikum.application.model.PlainMessage;
 
@@ -12,18 +13,30 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PostgresMessageRepository implements MessageRepository{
-    private static DataSource dataSource;
 
+    public static final String SETUP_TABLE = """
+                CREATE TABLE IF NOT EXISTS messages(
+                    id int primary key
+                    content varchar(500)
+                );
+            """;
 
-    public PostgresMessageRepository(DataSource dataSource) {
+    private static final String QUERY_ALL_MESSAGES = """
+               SELECT id, content from messages
+            """;
+
+    private final DbConnector dataSource;
+
+    public PostgresMessageRepository(DbConnector dataSource) {
         this.dataSource = dataSource;
+        try (PreparedStatement ps = dataSource.getConnection()
+                .prepareStatement(SETUP_TABLE)){
+            ps.execute();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Failed to setup table", e);
+        }
     }
 
-
-
-    public static final String QUERY_ALL_MESSAGES = """
-            SELECT id, content from messages
-            """;
     @Override
     public int addMessage(PlainMessage message) {
         return 0;
@@ -37,18 +50,20 @@ public class PostgresMessageRepository implements MessageRepository{
                 ps.execute();
                 final ResultSet resultSet = ps.getResultSet();
                 while(resultSet.next()){
-                    messages.add(
-                            new Message(
-                                resultSet.getInt(1),
-                                resultSet.getString(2)
-                            )
-                    );
+                    messages.add(convertResultSetToMessage(resultSet));
                 }
             }
         } catch (SQLException e){
             throw new IllegalStateException("DB query failed", e);
         }
         return messages;
+    }
+
+    private static Message convertResultSetToMessage(ResultSet resultSet) throws SQLException {
+        return new Message(
+                resultSet.getInt(1),
+                resultSet.getString(2)
+        );
     }
 
     @Override

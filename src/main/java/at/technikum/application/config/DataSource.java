@@ -9,13 +9,9 @@ import java.sql.SQLException;
 public class DataSource {
 
     private final HikariDataSource ds;
-    private DataSource(boolean isTest){
-        HikariConfig config;
-        if(isTest){
-            config = new HikariConfig("src/test/resources/hikari.properties");
-        } else {
-            config = new HikariConfig("src/main/resources/hikari.properties");
-        }
+    private DataSource(){
+        HikariConfig config = new HikariConfig("src/main/resources/hikari.properties");
+
         ds = new HikariDataSource(config);
     }
 
@@ -23,7 +19,7 @@ public class DataSource {
 
     public static DataSource getInstance(){
         if(dataSource == null){
-            dataSource = new DataSource(false);
+            dataSource = new DataSource();
         }
         return dataSource;
     }

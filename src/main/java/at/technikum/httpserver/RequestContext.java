@@ -1,5 +1,9 @@
 package at.technikum.httpserver;
 
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.List;
 
 public class RequestContext {
@@ -10,6 +14,8 @@ public class RequestContext {
     private String path;
     private List<Header> headers;
     private String body;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public String getHttpVerb() {
         return httpVerb;
@@ -63,5 +69,14 @@ public class RequestContext {
         System.out.println("Path: " + path);
         System.out.println("Headers: "+ headers);
         System.out.println("Body: " + body);
+    }
+
+    public <T> T getBodyAs(Class<T> clazz) {
+        try {
+            return objectMapper.readValue(body, clazz);
+        } catch (JsonProcessingException e){
+            System.err.println(e.getMessage());
+            throw new BadRequestException(e.getMessage());
+        }
     }
 }

@@ -1,5 +1,9 @@
 package at.technikum.httpserver;
 
+import at.technikum.application.router.Route;
+import at.technikum.application.router.RouteIdentifier;
+import at.technikum.application.router.Router;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -9,6 +13,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class HttpServer extends Thread {
+
+    private final Router router;
+
+    public HttpServer(Router router) { this.router = router; }
     public void start() {
 
             try (ServerSocket serverSocket = new ServerSocket(3000)) {
@@ -26,11 +34,33 @@ public class HttpServer extends Thread {
                             final RequestContext requestContext = parseInput(br);
                             requestContext.print();
 
+                            final RouteIdentifier routeIdentifier = new RouteIdentifier(
+                                    requestContext.getPath(),
+                                    requestContext.getHttpVerb()
+                            );
+                            final Route route = router.findRoute(routeIdentifier);
+                            Response response;
+                            try {
+                                response = route.process(requestContext);
+                            } catch (BadRequestException badRequestException) {
+                                response = new Response();
+                                response.setBody(badRequestException.getMessage());
+                                response.setHttpStatus(HttpStatus.BAD_REQUEST);
+                            } catch (IllegalStateException e) {
+                                response = new Response();
+                                response.setBody(e.getMessage());
+                                response.setHttpStatus(HttpStatus.INTERNAL_SERVER_ERROR);
+                            }
+
                             BufferedWriter w = new BufferedWriter(
                                     new OutputStreamWriter(socket.getOutputStream()));
-                            w.write("HTTP/1.1 200 OK");
+                            w.write("HTTP/1.1 ");
+                            w.write(response.getHttpStatus().getStatusCode() + " ");
+                            w.write(response.getHttpStatus().getStatusMessage());
                             w.newLine();
+                            // write headers
                             w.newLine();
+                            // write body
                             w.flush();
                             Thread.sleep(10000);
 
