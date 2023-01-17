@@ -25,6 +25,31 @@ public class PostgresMessageRepository implements MessageRepository{
                SELECT id, content from messages
             """;
 
+    public static final String QUERY_ADD_MESSAGE = """
+                INSERT INTO messages (content)
+                VALUES ?
+            """;
+
+    public static final String QUERY_GET_ID = """
+                SELECT id from messages
+                WHERE content = ?
+            """;
+
+    public static final String QUERY_GET_MESSAGE = """
+                SELECT id, content from messages
+                WHERE id = ?
+            """;
+
+    public static final String QUERY_EDIT_MESSAGE = """
+                UPDATE messages
+                SET content = ?
+                WHERE id = ?
+            """;
+
+    public static final String QUERY_DELETE_MESSAGE = """
+                DELETE FROM messages
+                WHERE id = ?
+            """;
     private final DbConnector dataSource;
 
     public PostgresMessageRepository(DbConnector dataSource) {
@@ -39,7 +64,21 @@ public class PostgresMessageRepository implements MessageRepository{
 
     @Override
     public int addMessage(PlainMessage message) {
-        return 0;
+        int id;
+        try(Connection c = dataSource.getConnection()){
+            try (PreparedStatement ps = c.prepareStatement(QUERY_ADD_MESSAGE)){
+                ps.setString(1, message.getContent());
+                ps.execute();
+                try(PreparedStatement ps2 = c.prepareStatement(QUERY_GET_ID)){
+                    ps2.setString(1, message.getContent());
+                    ps.execute();
+                    id = ps.getResultSet().getInt(1);
+                }
+            }
+        } catch (SQLException e){
+            throw new IllegalStateException("DB query failed", e);
+        }
+        return id;
     }
 
     @Override
@@ -68,16 +107,46 @@ public class PostgresMessageRepository implements MessageRepository{
 
     @Override
     public Message getMessage(int id) {
-        return null;
+        Message message;
+        try(Connection c = dataSource.getConnection()){
+            try (PreparedStatement ps = c.prepareStatement(QUERY_GET_MESSAGE)){
+                ps.setInt(1, id);
+                ps.execute();
+                message = convertResultSetToMessage(ps.getResultSet());
+            }
+        } catch (SQLException e){
+            throw new IllegalStateException("DB query failed", e);
+        }
+        return message;
     }
 
     @Override
     public Message editMessage(Message message) {
-        return null;
+        int id = message.getId();
+        String base = message.getMessage();
+        try(Connection c = dataSource.getConnection()){
+            try(PreparedStatement ps = c.prepareStatement(QUERY_EDIT_MESSAGE)){
+                ps.setString(1, base);
+                ps.setInt(2, id);
+                ps.execute();
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("DB query failed", e);
+        }
+        Message storedMessage = getMessage(id);
+        return storedMessage;
     }
 
     @Override
     public boolean deleteMessage(int id) {
-        return false;
+        try(Connection c = dataSource.getConnection()){
+            try(PreparedStatement ps = c.prepareStatement(QUERY_DELETE_MESSAGE)){
+                ps.setInt(1, id);
+                ps.execute();
+            }
+        } catch (SQLException e){
+            throw new IllegalStateException("DB query failed", e);
+        }
+        return true;
     }
 }

@@ -6,7 +6,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-public class DataSource {
+public class DataSource implements DbConnector {
 
     private final HikariDataSource ds;
     private DataSource(){

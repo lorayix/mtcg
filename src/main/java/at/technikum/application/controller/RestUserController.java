@@ -63,6 +63,16 @@ public class RestUserController implements Controller {
                 this::login
         ));
 
+        userRoutes.add(new Pair<>(
+                routeIdentifier("/users/", "GET"),
+                this::userData
+        ));
+
         return userRoutes;
+    }
+
+    public Response userData(RequestContext requestContext) {
+        Response response = new Response();
+        return response;
     }
 }

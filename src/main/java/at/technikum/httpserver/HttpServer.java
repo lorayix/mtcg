@@ -19,7 +19,7 @@ public class HttpServer extends Thread {
     public HttpServer(Router router) { this.router = router; }
     public void start() {
 
-            try (ServerSocket serverSocket = new ServerSocket(3000)) {
+            try (ServerSocket serverSocket = new ServerSocket(10001)) {
                 ExecutorService executorService = Executors.newFixedThreadPool(10);
 
                 while(true) {
