@@ -1,6 +1,5 @@
 package at.technikum.httpserver;
 
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -14,6 +13,16 @@ public class RequestContext {
     private String path;
     private List<Header> headers;
     private String body;
+
+    public void setIdentifier(String identifier) {
+        this.identifier = identifier;
+    }
+
+    private String identifier = "";
+
+    public String getIdentifier() {
+        return identifier;
+    }
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -69,6 +78,7 @@ public class RequestContext {
         System.out.println("Path: " + path);
         System.out.println("Headers: "+ headers);
         System.out.println("Body: " + body);
+        System.out.println("Identifier: " + identifier);
     }
 
     public <T> T getBodyAs(Class<T> clazz) {

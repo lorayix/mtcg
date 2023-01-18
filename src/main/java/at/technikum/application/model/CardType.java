@@ -21,7 +21,6 @@ public enum CardType {
 
     private final String element;
     private final String type;
-
     private final String name;
 
     CardType(String element, String type, String name){

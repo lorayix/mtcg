@@ -38,6 +38,7 @@ public class HttpServer extends Thread {
                                     requestContext.getPath(),
                                     requestContext.getHttpVerb()
                             );
+
                             final Route route = router.findRoute(routeIdentifier);
                             Response response;
                             try {
@@ -54,18 +55,19 @@ public class HttpServer extends Thread {
 
                             BufferedWriter w = new BufferedWriter(
                                     new OutputStreamWriter(socket.getOutputStream()));
-                            w.write("HTTP/1.1 ");
-                            w.write(response.getHttpStatus().getStatusCode() + " ");
-                            w.write(response.getHttpStatus().getStatusMessage());
+                            //w.write("HTTP/1.1 ");
+                            w.write("HTTP/1.1 " + response.getHttpStatus().getStatusCode() + " " + response.getHttpStatus().getStatusMessage());
                             w.newLine();
                             // write headers
                             w.newLine();
-                            // write body
+                            w.write(response.getBody());
+                            w.newLine();
+                            w.newLine();
+                            w.close();
                             w.flush();
-                            Thread.sleep(10000);
-
+                            /*Thread.sleep(100);
                         } catch (InterruptedException e){
-                            throw new RuntimeException(e);
+                            throw new RuntimeException(e);*/
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
@@ -86,6 +88,16 @@ public class HttpServer extends Thread {
         final String[] splitVersionString = versionString.split(" ");
         requestContext.setHttpVerb(splitVersionString[0]);
         requestContext.setPath(splitVersionString[1]);
+        String path = requestContext.getPath();
+        int lastIndex = path.lastIndexOf("/");
+        if(lastIndex > 0){
+            final String[] splitPath = path.split("/");
+            if((path.indexOf("users") > 0) || (path.indexOf("tradings") > 0)){
+                requestContext.setPath("/" + splitPath[1]);
+                requestContext.setIdentifier(splitPath[2]);
+            }
+
+        }
 
         do {
             input = bufferedReader.readLine();

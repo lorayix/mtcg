@@ -1,8 +1,14 @@
 package at.technikum.application.repository;
 
 import at.technikum.application.model.User;
+import at.technikum.application.model.UserData;
 
 public interface UserRepository {
     void save(User user);
     User findUserByUsername(String username);
+    int loginUser(User user);
+
+    UserData getUserData(String username, String token);
+
+    int updateData(String token, UserData userData);
 }
