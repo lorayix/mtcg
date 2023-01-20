@@ -128,7 +128,6 @@ public class RestUserController implements Controller {
         response.setHttpStatus(HttpStatus.OK);
         String json = new ObjectMapper().writeValueAsString(new UserData(userData.getName(), userData.getBio(), userData.getImage()));
         response.setBody(json);
-
         return response;
     }
 

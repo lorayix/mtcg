@@ -17,6 +17,4 @@ public class UserService {
     }
     public int getCoins(String token) { return userRepository.getCoins(token); }
     public void subtractCoinsForPackage(int coins, String token){ userRepository.subtractCoinsForPackage(coins, token); }
-
-    public String getUserIDByToken(String token) {return userRepository.getUserIDByToken(token); }
 }

@@ -7,13 +7,8 @@ public interface UserRepository {
     void save(User user);
     User findUserByUsername(String username);
     int loginUser(User user);
-
     UserData getUserData(String username, String token);
-
     int updateData(String token, UserData userData);
-
     int getCoins(String token);
     void subtractCoinsForPackage(int coins, String token);
-
-    String getUserIDByToken(String token);
 }

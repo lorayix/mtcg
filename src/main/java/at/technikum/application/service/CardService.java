@@ -13,8 +13,8 @@ public class CardService {
     public void createCard(Card card, UUID packageID) {
         cardRepository.createCard(card, packageID);
     }
-    public void changeCardOwner(String cardId, String uid){
-        cardRepository.changeCardOwner(cardId, uid);
+    public void changeCardOwner(String cardId, String token){
+        cardRepository.changeCardOwner(cardId, token);
     }
     public List<Card> buyPackage(String token, String pid){
         return cardRepository.buyPackage(token, pid);
@@ -25,8 +25,11 @@ public class CardService {
     public List<Card> showDeck(String token){
         return cardRepository.showDeck(token);
     }
-    public int configureDeck(String token, List<Card> cards){
-        return cardRepository.configureDeck(token, cards);
+    public boolean configureDeck(List<String> cards, String uid){
+        return cardRepository.configureDeck(cards, uid);
+    }
+    public void resetDeck(String token, List<String> cid){
+        cardRepository.resetDeck(token, cid);
     }
     public String getUnusedPackage(){
         return cardRepository.getUnusedPackage();

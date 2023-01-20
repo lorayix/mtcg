@@ -74,13 +74,11 @@ public class RestCardController implements Controller {
         Response response = new Response();
         int coins = userService.getCoins(token);
         if(coins >= 5) {
-            String uid = userService.getUserIDByToken(token);
             String pid = cardService.getUnusedPackage();
             List<Card> cardPackage = cardService.buyPackage(token, pid);
             for(Card card : cardPackage){
-                cardService.changeCardOwner(card.getCardId().toString(), uid);
+                cardService.changeCardOwner(card.getCardId().toString(), token);
             }
-
             userService.subtractCoinsForPackage(5, token);
             response = cardListJson(cardPackage);
         } else {
@@ -101,23 +99,58 @@ public class RestCardController implements Controller {
     }
     public Response showCards(RequestContext requestContext) throws JsonProcessingException {
         String token = requestContext.getToken();
-        Response response = new Response();
-        if(token.equals("")){
-            response.setBody("No token delivered");
-            response.setHttpStatus(HttpStatus.UNAUTHORIZED);
+        Response response;
+        List<Card> cards = cardService.showCards(token);
+        if(cards == null){
+            response  = new Response();
+            response.setBody("No cards found");
+            response.setHttpStatus(HttpStatus.NO_CONTENT);
             return response;
         }
-        List<Card> cards = cardService.showCards(token);
         response = cardListJson(cards);
         return response;
     }
 
-    public Response showDeck(RequestContext requestContext){
-        return null;
+    public Response showDeck(RequestContext requestContext) throws JsonProcessingException {
+        String token = requestContext.getToken();
+        Response response = new Response();
+        List<Card> cards = cardService.showDeck(token);
+        if(cards == null){
+            response.setBody("No cards found");
+            response.setHttpStatus(HttpStatus.NO_CONTENT);
+            return response;
+        }
+        response.setHttpStatus(HttpStatus.OK);
+        if(!requestContext.getIdentifier().equals("format=plain")){
+            response = cardListJson(cards);
+        } else {
+            String body = "";
+            for(Card card : cards){
+                body += card.getCardId().toString() + " " +card.getName() + " " + card.getDamage() + "\n";
+            }
+            response.setBody(body);
+        }
+        return response;
     }
 
     public Response configureDeck(RequestContext requestContext){
-        return null;
+        String token = requestContext.getToken();
+        Response response = new Response();
+        List<String> cards = requestContext.getBodyAs(List.class);
+        response.setHttpStatus(HttpStatus.BAD_REQUEST);
+        if(cards.size() < 4){
+            response.setBody("Too few cards set");
+        } else {
+            if(cardService.configureDeck(cards, token)){
+                cardService.resetDeck(token, cards);
+                cardService.configureDeck(cards, token);
+                response.setHttpStatus(HttpStatus.OK);
+                response.setBody("Deck successfully configured");
+            } else {
+                response.setBody("Cards do not all belong to user, query failed");
+            }
+        }
+        return response;
     }
     @Override
     public List<Pair<RouteIdentifier, Route>> listRoutes() {

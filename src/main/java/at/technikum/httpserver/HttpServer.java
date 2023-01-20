@@ -96,8 +96,14 @@ public class HttpServer extends Thread {
                 requestContext.setPath("/" + splitPath[1]);
                 requestContext.setIdentifier(splitPath[2]);
             }
-
         }
+        lastIndex = path.lastIndexOf("?");
+        if(lastIndex > 0){
+            final String[] splitPath = path.split("\\?");
+            requestContext.setPath(splitPath[0]);
+            requestContext.setIdentifier(splitPath[1]);
+        }
+
 
         do {
             input = bufferedReader.readLine();

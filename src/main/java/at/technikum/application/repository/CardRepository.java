@@ -9,9 +9,10 @@ public interface CardRepository {
     List<Card> buyPackage(String token, String pid);
     List<Card> showCards(String token);
     List<Card> showDeck(String token);
-    int configureDeck(String token, List<Card> cards);
+    boolean configureDeck(List<String> cards, String uid);
     void createCard(Card card, UUID packageID);
     String getUnusedPackage();
+    void changeCardOwner(String cardId, String token);
 
-    void changeCardOwner(String cardId, String uid);
+    void resetDeck(String token, List<String> cid);
 }

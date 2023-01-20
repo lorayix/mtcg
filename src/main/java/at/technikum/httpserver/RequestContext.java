@@ -98,9 +98,12 @@ public class RequestContext {
                 tokenValue = header.getValue();
             }
         }
-        final String[] tokenArray = tokenValue.split("Bearer ");
-        String token = tokenArray[1];
-
-        return token;
+        if(!tokenValue.isBlank()) {
+            final String[] tokenArray = tokenValue.split("Bearer ");
+            String token = tokenArray[1];
+            return token;
+        }
+        throw
+                new BadRequestException("No token was delivered");
     }
 }

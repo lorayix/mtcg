@@ -15,8 +15,6 @@ public class PostgresUserRepository implements UserRepository {
 
     private final DbConnector dataSource;
     public static final String SETUP_TABLE = """
-                DROP TABLE IF EXISTS users;
-
                 CREATE TABLE IF NOT EXISTS users(
                     userID serial PRIMARY KEY,
                     username varchar UNIQUE NOT NULL,
@@ -186,27 +184,6 @@ public class PostgresUserRepository implements UserRepository {
             }
         } catch (SQLException e){
             throw new IllegalStateException("DB query 'subtractCoins' failed", e);
-        }
-    }
-    public static final String QUERY_GET_USER_BY_TOKEN = """
-            SELECT userId FROM users WHERE token = ?
-            """;
-    @Override
-    public String getUserIDByToken(String token) {
-        try(Connection c = dataSource.getConnection()){
-            try(PreparedStatement ps = c.prepareStatement(QUERY_GET_USER_BY_TOKEN)){
-                ps.setString(1, token);
-                ps.execute();
-                final ResultSet resultSet = ps.getResultSet();
-                if(!resultSet.next()){
-                    return null;
-                } else {
-                    String userid = ps.getResultSet().getObject(1).toString();
-                    return userid;
-                }
-            }
-        } catch(SQLException e){
-            throw new IllegalStateException("Db query 'getUserIdByToken' failed", e);
         }
     }
 }
