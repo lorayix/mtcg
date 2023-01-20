@@ -15,6 +15,8 @@ public class PostgresUserRepository implements UserRepository {
 
     private final DbConnector dataSource;
     public static final String SETUP_TABLE = """
+                DROP TABLE IF EXISTS users;
+
                 CREATE TABLE IF NOT EXISTS users(
                     userID serial PRIMARY KEY,
                     username varchar UNIQUE NOT NULL,
@@ -29,28 +31,6 @@ public class PostgresUserRepository implements UserRepository {
                     token varchar UNIQUE NOT NULL
                 );
             """;
-
-    public static final String QUERY_SEARCH_FOR_USER_USERNAME = """
-                SELECT * FROM users WHERE username = ?
-            """;
-
-    public static final String QUERY_REGISTER_USER = """
-                INSERT INTO users (username, password, token)
-                VALUES (?, ?, ?)
-            """;
-
-    public static final String QUERY_LOGIN = """
-                UPDATE users SET loggedIn = TRUE WHERE username = ? AND password = ? AND loggedIn = FALSE;
-            """;
-
-    public static final String QUERY_GET_USERDATA = """
-                SELECT name, bio, image FROM users WHERE username = ? AND token = ? AND loggedIN = TRUE;
-            """;
-
-    public static final String QUERY_UPDATE_USERDATA = """
-                UPDATE users SET name = ?, bio = ?, image = ? WHERE token = ?
-            """;
-
     public PostgresUserRepository(DbConnector dataSource) {
         this.dataSource = dataSource;
         try (PreparedStatement ps = dataSource.getConnection().
@@ -60,7 +40,10 @@ public class PostgresUserRepository implements UserRepository {
             throw new IllegalStateException("Failed to setup table for User", e);
         }
     }
-
+    public static final String QUERY_REGISTER_USER = """
+                INSERT INTO users (username, password, token)
+                VALUES (?, ?, ?)
+            """;
     @Override
     public void save(User user) {
         String username = user.getUsername();
@@ -77,7 +60,9 @@ public class PostgresUserRepository implements UserRepository {
             throw new IllegalStateException("DB query failed", e);
         }
     }
-
+    public static final String QUERY_SEARCH_FOR_USER_USERNAME = """
+                SELECT * FROM users WHERE username = ?
+            """;
     @Override
     public User findUserByUsername(String username) {
         User user;
@@ -98,14 +83,15 @@ public class PostgresUserRepository implements UserRepository {
         }
         return user;
     }
-
+    public static final String QUERY_LOGIN = """
+                UPDATE users SET loggedIn = TRUE WHERE username = ? AND password = ? AND loggedIn = FALSE;
+            """;
     @Override
     public int loginUser(User user) {
         try (Connection c = dataSource.getConnection()) {
             try (PreparedStatement ps = c.prepareStatement(QUERY_LOGIN)) {
                 ps.setString(1, user.getUsername());
                 ps.setString(2, String.valueOf(user.getPassword().hashCode()));
-
                 int state = ps.executeUpdate();
                 if (state != 1) {
                     return 1;
@@ -117,7 +103,9 @@ public class PostgresUserRepository implements UserRepository {
             throw new IllegalStateException("DB query 'loginUser' failed", e);
         }
     }
-
+    public static final String QUERY_GET_USERDATA = """
+                SELECT name, bio, image FROM users WHERE username = ? AND token = ? AND loggedIN = TRUE;
+            """;
     @Override
     public UserData getUserData(String username, String token) {
         UserData userData;
@@ -140,7 +128,9 @@ public class PostgresUserRepository implements UserRepository {
         }
         return userData;
     }
-
+    public static final String QUERY_UPDATE_USERDATA = """
+                UPDATE users SET name = ?, bio = ?, image = ? WHERE token = ?
+            """;
     @Override
     public int updateData(String token, UserData userData) {
         String name = userData.getName();
@@ -152,7 +142,6 @@ public class PostgresUserRepository implements UserRepository {
                 ps.setString(2, bio);
                 ps.setString(3, image);
                 ps.setString(4, token);
-
                 int state = ps.executeUpdate();
                 if(state != 1) {
                     return 1;
@@ -164,6 +153,61 @@ public class PostgresUserRepository implements UserRepository {
             throw new IllegalStateException("DB query 'updateData' failed");
         }
     }
-
+    public static final String QUERY_GET_COINS = """
+            SELECT coins FROM users WHERE token = ?
+            """;
+    @Override
+    public int getCoins(String token) {
+        try(Connection c = dataSource.getConnection()){
+            try(PreparedStatement ps = c.prepareStatement(QUERY_GET_COINS)){
+                ps.setString(1, token);
+                ps.execute();
+                ResultSet resultSet = ps.getResultSet();
+                if(!resultSet.next()){
+                    return 1;
+                } else {
+                    return resultSet.getInt("coins");
+                }
+            }
+        } catch (SQLException e){
+            throw new IllegalStateException("DB query 'getCoins' failed", e);
+        }
+    }
+    public static final String QUERY_BUY_SOMETHING = """
+            UPDATE users SET coins = coins - ? WHERE token = ?
+            """;
+    @Override
+    public void subtractCoinsForPackage(int coins, String token) {
+        try(Connection c = dataSource.getConnection()){
+            try(PreparedStatement ps = c.prepareStatement(QUERY_BUY_SOMETHING)){
+                ps.setInt(1, 5);
+                ps.setString(2, token);
+                ps.execute();
+            }
+        } catch (SQLException e){
+            throw new IllegalStateException("DB query 'subtractCoins' failed", e);
+        }
+    }
+    public static final String QUERY_GET_USER_BY_TOKEN = """
+            SELECT userId FROM users WHERE token = ?
+            """;
+    @Override
+    public String getUserIDByToken(String token) {
+        try(Connection c = dataSource.getConnection()){
+            try(PreparedStatement ps = c.prepareStatement(QUERY_GET_USER_BY_TOKEN)){
+                ps.setString(1, token);
+                ps.execute();
+                final ResultSet resultSet = ps.getResultSet();
+                if(!resultSet.next()){
+                    return null;
+                } else {
+                    String userid = ps.getResultSet().getObject(1).toString();
+                    return userid;
+                }
+            }
+        } catch(SQLException e){
+            throw new IllegalStateException("Db query 'getUserIdByToken' failed", e);
+        }
+    }
 }
 

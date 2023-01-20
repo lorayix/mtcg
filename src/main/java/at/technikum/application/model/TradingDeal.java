@@ -1,11 +1,17 @@
 package at.technikum.application.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.UUID;
 
 public class TradingDeal {
+    @JsonProperty("ID")
     private UUID dealID;
+    @JsonProperty("CardToTrade")
     private UUID cardID;
+    @JsonProperty("Type")
     private String type;
+    @JsonProperty("MinimumDamage")
     private float minDamage;
 
     public TradingDeal(UUID dealID, UUID cardID, String type, float minDamage) {

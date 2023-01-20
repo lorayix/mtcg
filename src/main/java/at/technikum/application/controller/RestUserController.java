@@ -21,9 +21,11 @@ public class RestUserController implements Controller {
 
     private final UserService userService;
 
-    public RestUserController(UserService userService) { this.userService = userService; }
+    public RestUserController(UserService userService) {
+        this.userService = userService;
+    }
 
-    public Response register(RequestContext requestContext){
+    public Response register(RequestContext requestContext) {
         System.out.println("Body of register: " + requestContext.getBody());
         Credentials credentials = requestContext.getBodyAs(Credentials.class);
         return register(credentials);
@@ -47,6 +49,7 @@ public class RestUserController implements Controller {
         Credentials credentials = requestContext.getBodyAs(Credentials.class);
         return login(credentials);
     }
+
     public Response login(Credentials credentials) {
         User user = userService.findUserByUsername(credentials.getUsername());
         int loginOkay;
@@ -95,19 +98,19 @@ public class RestUserController implements Controller {
     }
 
     public Response tokenValidation(RequestContext requestContext) throws JsonProcessingException {
-        String token = getToken(requestContext);
-        String username = requestContext.getIdentifier();;
+        String token = requestContext.getToken();
+        String username = requestContext.getIdentifier();
         User user = userService.findUserByUsername(username);
         Response response = new Response();
-        if(user == null){
+        if (user == null) {
             response.setHttpStatus(HttpStatus.UNAUTHORIZED);
             response.setBody("User hasn't been found");
         } else {
-            if(token.contains(username)){
+            if (token.contains(username)) {
                 System.out.println(requestContext.getHttpVerb());
-                if(requestContext.getHttpVerb().equals("GET")) {
+                if (requestContext.getHttpVerb().equals("GET")) {
                     response = getData(username, token);
-                } else if(requestContext.getHttpVerb().equals("PUT")){
+                } else if (requestContext.getHttpVerb().equals("PUT")) {
                     response = updateData(token, requestContext);
                 }
 
@@ -129,11 +132,11 @@ public class RestUserController implements Controller {
         return response;
     }
 
-    private Response updateData(String token, RequestContext requestContext){
+    private Response updateData(String token, RequestContext requestContext) {
         Response response = new Response();
         UserData userData = requestContext.getBodyAs(UserData.class);
         int success = userService.updateData(token, userData);
-        if(success == 0){
+        if (success == 0) {
             response.setHttpStatus(HttpStatus.OK);
             response.setBody("Data updated");
         } else {
@@ -141,28 +144,5 @@ public class RestUserController implements Controller {
             response.setBody("Data couldn't be updated. Please check if you're logged in");
         }
         return response;
-    }
-
-
-    public Response updateUser(RequestContext requestContext){
-        Response response = new Response();
-        String token = getToken(requestContext);
-        String username = requestContext.getIdentifier();
-
-        return response;
-    }
-
-    String getToken(RequestContext requestContext){
-        List<Header> headers = requestContext.getHeaders();
-        String tokenValue = "";
-        for (Header header: headers) {
-            if(header.getName().equals("Authorization")){
-                tokenValue = header.getValue();
-            }
-        }
-        final String[] tokenArray = tokenValue.split("Bearer ");
-        String token = tokenArray[1];
-
-        return token;
     }
 }

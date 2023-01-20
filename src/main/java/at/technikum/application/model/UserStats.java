@@ -1,9 +1,15 @@
 package at.technikum.application.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class UserStats {
+    @JsonProperty("Name")
     private String name;
+    @JsonProperty("Elo")
     private int elo;
+    @JsonProperty("Wins")
     private int wins;
+    @JsonProperty("Losses")
     private int losses;
 
     public UserStats(String username, int elo, int wins, int losses) {
