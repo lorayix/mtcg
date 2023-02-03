@@ -1,6 +1,7 @@
 package at.technikum.application.service;
 
 import at.technikum.application.model.Card;
+import at.technikum.application.model.TradingDeal;
 import at.technikum.application.repository.CardRepository;
 
 import java.util.List;
@@ -33,5 +34,27 @@ public class CardService {
     }
     public String getUnusedPackage(){
         return cardRepository.getUnusedPackage();
+    }
+    public boolean createTradingDeal(TradingDeal deal, String token) {
+        return cardRepository.createTradingDeal(deal, token);
+    }
+    public List<TradingDeal> getTradingDeals() {
+        return cardRepository.getTradingDeals();
+    }
+
+    public String deleteDeal(String token, UUID tradingID) {
+        return cardRepository.deleteDeal(token, tradingID);
+    }
+
+    public Card getCardFromID(UUID cardID) {
+        return cardRepository.getCardFromID(cardID);
+    }
+
+    public TradingDeal getDealFromID(UUID tradingID) {
+        return cardRepository.getDealFromID(tradingID);
+    }
+
+    public String getOwner(String cardID) {
+        return cardRepository.getOwner(cardID);
     }
 }

@@ -2,7 +2,7 @@ package at.technikum.application.controller;
 
 import at.technikum.application.config.DataSource;
 import at.technikum.application.model.Card;
-import at.technikum.application.model.User;
+import at.technikum.application.model.TradingDeal;
 import at.technikum.application.repository.PostgresUserRepository;
 import at.technikum.application.router.Controller;
 import at.technikum.application.router.Route;
@@ -13,13 +13,13 @@ import at.technikum.application.util.Pair;
 import at.technikum.httpserver.HttpStatus;
 import at.technikum.httpserver.RequestContext;
 import at.technikum.httpserver.Response;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.*;
+
+import static java.lang.Float.parseFloat;
 
 public class RestCardController implements Controller {
     private final CardService cardService;
@@ -46,7 +46,7 @@ public class RestCardController implements Controller {
             UUID uuid = UUID.fromString(id.toString());
             System.out.println(uuid);
             String name = hashMap.get("Name").toString();
-            float damage = Float.parseFloat(hashMap.get("Damage").toString());
+            float damage = parseFloat(hashMap.get("Damage").toString());
             cards.add(new Card(uuid, name, damage));
         }
         System.out.println(cards.get(0).getName());
@@ -75,6 +75,11 @@ public class RestCardController implements Controller {
         int coins = userService.getCoins(token);
         if(coins >= 5) {
             String pid = cardService.getUnusedPackage();
+            if(pid == null){
+                response.setHttpStatus(HttpStatus.INTERNAL_SERVER_ERROR);
+                response.setBody("There are no more packages left");
+                return response;
+            }
             List<Card> cardPackage = cardService.buyPackage(token, pid);
             for(Card card : cardPackage){
                 cardService.changeCardOwner(card.getCardId().toString(), token);
@@ -91,7 +96,7 @@ public class RestCardController implements Controller {
         Response response = new Response();
         response.setBody("");
         for (Card card: cards) {
-            String json = new ObjectMapper().writeValueAsString(new Card(card.getCardId(), card.getName(), card.getDamage()));
+            String json = new ObjectMapper().writeValueAsString(card);
             response.setBody(response.getBody() + "\n" + json);
         }
         response.setHttpStatus(HttpStatus.OK);
@@ -152,6 +157,82 @@ public class RestCardController implements Controller {
         }
         return response;
     }
+    public Response getTradingDeals(RequestContext requestContext) throws JsonProcessingException {
+        Response response = new Response();
+        requestContext.getToken();
+        List<TradingDeal> deals = cardService.getTradingDeals();
+        response.setHttpStatus(HttpStatus.OK);
+        if(deals == null){
+            response.setBody("No cards in tradings");
+        } else {
+            response.setBody("Tradings: \n");
+            for(TradingDeal deal : deals){
+                response.setBody(response.getBody() + new ObjectMapper().writeValueAsString(deal) + "\n");
+            }
+        }
+        return response;
+    }
+    public Response checkWhichTrading(RequestContext requestContext){
+        if(requestContext.getIdentifier().isBlank()){
+            return createTradingDeal(requestContext);
+        } else {
+            return carryOutTradingDeal(requestContext);
+        }
+    }
+    public Response createTradingDeal(RequestContext requestContext){
+        String token = requestContext.getToken();
+        TradingDeal deal = requestContext.getBodyAs(TradingDeal.class);
+        boolean success = cardService.createTradingDeal(deal, token);
+        Response response = new Response();
+        if(success){
+            response.setHttpStatus(HttpStatus.OK);
+            response.setBody("Trading deal creation worked");
+        } else {
+            response.setHttpStatus(HttpStatus.BAD_REQUEST);
+            response.setBody("Either token invalid or card does not belong to user");
+        }
+        return response;
+    }
+    public Response deleteTradingDeal(RequestContext requestContext){
+        String token = requestContext.getToken();
+        UUID tradingID = UUID.fromString(requestContext.getIdentifier());
+        Response response = new Response();
+        String success = cardService.deleteDeal(token, tradingID);
+        if(success.contains("belong") || success.contains("ID") || success.contains("didn't")){
+            response.setHttpStatus(HttpStatus.BAD_REQUEST);
+        } else {
+            response.setHttpStatus(HttpStatus.OK);
+        }
+        response.setBody(success);
+        return response;
+    }
+    public Response carryOutTradingDeal(RequestContext requestContext){
+        String token = requestContext.getToken();
+        UUID tradingID = UUID.fromString(requestContext.getIdentifier());
+        UUID cardToTradeID = UUID.fromString(requestContext.getBody().replace("\"", ""));
+        Card cardToTrade = cardService.getCardFromID(cardToTradeID);
+        TradingDeal tradingDeal= cardService.getDealFromID(tradingID);
+        Response response = new Response();
+        Card cardFromTrade = cardService.getCardFromID(tradingDeal.getCardID());
+        String tokenFromTradeOwner = cardService.getOwner(cardFromTrade.getCardId().toString());
+        if(tradingDeal.getMinDamage() <= cardToTrade.getDamage()){
+            if(!token.contains(tokenFromTradeOwner)){
+                cardService.changeCardOwner(cardToTradeID.toString(), tokenFromTradeOwner);
+                cardService.changeCardOwner(cardFromTrade.getCardId().toString(), token);
+                cardService.deleteDeal(token, tradingID);
+                response.setHttpStatus(HttpStatus.OK);
+                response.setBody("Trading Deal successful");
+            } else {
+                response.setHttpStatus(HttpStatus.BAD_REQUEST);
+                response.setBody("User owns both cards, in trading as well as the offered card");
+            }
+        } else {
+            response.setHttpStatus(HttpStatus.BAD_REQUEST);
+            response.setBody("The offered card hasn't enough damage");
+        }
+        return response;
+    }
+
     @Override
     public List<Pair<RouteIdentifier, Route>> listRoutes() {
         List<Pair<RouteIdentifier, Route>> cardRoutes = new ArrayList<>();
@@ -180,7 +261,22 @@ public class RestCardController implements Controller {
                 RouteIdentifier.routeIdentifier("/deck", "PUT"),
                 this::configureDeck
         ));
-
+        cardRoutes.add(new Pair<>(
+                RouteIdentifier.routeIdentifier("/tradings", "GET"),
+                this::getTradingDeals
+        ));
+        cardRoutes.add(new Pair<>(
+                RouteIdentifier.routeIdentifier("/tradings", "POST"),
+                this::checkWhichTrading
+        ));
+        cardRoutes.add(new Pair<>(
+                RouteIdentifier.routeIdentifier("/tradings", "DELETE"),
+                this::deleteTradingDeal
+        ));
+        cardRoutes.add(new Pair<>(
+                RouteIdentifier.routeIdentifier("/tradings", "POST"),
+                this::checkWhichTrading
+        ));
 
         return cardRoutes;
     }

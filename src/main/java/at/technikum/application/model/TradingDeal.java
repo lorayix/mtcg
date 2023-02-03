@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.UUID;
 
 public class TradingDeal {
-    @JsonProperty("ID")
+    @JsonProperty("Id")
     private UUID dealID;
     @JsonProperty("CardToTrade")
     private UUID cardID;
@@ -13,7 +13,7 @@ public class TradingDeal {
     private String type;
     @JsonProperty("MinimumDamage")
     private float minDamage;
-
+    public TradingDeal(){};
     public TradingDeal(UUID dealID, UUID cardID, String type, float minDamage) {
         this.dealID = dealID;
         this.cardID = cardID;

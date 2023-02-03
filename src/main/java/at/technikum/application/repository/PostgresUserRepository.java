@@ -4,12 +4,15 @@ package at.technikum.application.repository;
 import at.technikum.application.config.DbConnector;
 import at.technikum.application.model.User;
 import at.technikum.application.model.UserData;
+import at.technikum.application.model.UserStats;
 
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class PostgresUserRepository implements UserRepository {
 
@@ -22,6 +25,7 @@ public class PostgresUserRepository implements UserRepository {
                     name varchar NOT NULL default ' ',
                     bio varchar NOT NULL default '  ',
                     image varchar NOT NULL default ' ',
+                    elo int default 100,
                     wins int default 0,
                     losses int default 0,
                     coins int default 20,
@@ -184,6 +188,55 @@ public class PostgresUserRepository implements UserRepository {
             }
         } catch (SQLException e){
             throw new IllegalStateException("DB query 'subtractCoins' failed", e);
+        }
+    }
+    public static final String QUERY_GET_SCOREBOARD = """
+                SELECT name, elo, wins, losses FROM users ORDER BY elo FETCH FIRST 3 ROW ONLY
+            """;
+
+    private UserStats resultToUserStat(ResultSet resultSet) throws SQLException {
+        String name = resultSet.getString("name");
+        int elo =  resultSet.getInt("elo");
+        int wins = resultSet.getInt("wins");
+        int losses = resultSet.getInt("losses");
+
+        UserStats userStats = new UserStats(name, elo, wins, losses);
+        return userStats;
+    }
+    @Override
+    public List<UserStats> getScoreboard(){
+        List<UserStats> stats = new ArrayList<>();
+        try(Connection c = dataSource.getConnection()){
+            try(PreparedStatement ps = c.prepareStatement(QUERY_GET_SCOREBOARD)){
+                ps.execute();
+                ResultSet resultSet = ps.getResultSet();
+                while(resultSet.next()){
+                    stats.add(resultToUserStat(resultSet));
+                }
+                return stats;
+            }
+        }catch(SQLException e){
+            throw new IllegalStateException("DB query 'getScoreboard' failed", e);
+        }
+    }
+    public static final String QUERY_GET_SCORE_BY_TOKEN = """
+                SELECT name, elo, wins, losses FROM users WHERE token = ?
+            """;
+    @Override
+    public UserStats getUserScore(String token){
+        try(Connection c = dataSource.getConnection()){
+            try(PreparedStatement ps = c.prepareStatement(QUERY_GET_SCORE_BY_TOKEN)){
+                ps.setString(1, token);
+                ps.execute();
+                final ResultSet resultSet = ps.getResultSet();
+                if(!resultSet.next()){
+                    return null;
+                } else {
+                    return resultToUserStat(resultSet);
+                }
+            }
+        } catch(SQLException e){
+            throw new IllegalStateException("DB query 'getScoreByUsername' failed", e);
         }
     }
 }

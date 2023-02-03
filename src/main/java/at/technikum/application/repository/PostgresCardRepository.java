@@ -2,6 +2,8 @@ package at.technikum.application.repository;
 
 import at.technikum.application.config.DbConnector;
 import at.technikum.application.model.Card;
+import at.technikum.application.model.TradingDeal;
+import at.technikum.application.model.UserStats;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -28,8 +30,13 @@ public class PostgresCardRepository implements CardRepository {
                 package_id varchar NOT NULL,
                 usertoken varchar default '',
                 deck boolean default FALSE,
-                inTrade boolean default FALSE,
-                fk_trade UUID UNIQUE
+                inTrade boolean default FALSE
+            );
+            CREATE TABLE IF NOT EXISTS trades(
+                tradeID varchar PRIMARY KEY,
+                cardID varchar NOT NULL,
+                type varchar NOT NULL,
+                minDamage float NOT NULL
             );
             """;
     public PostgresCardRepository(DbConnector dataSource){
@@ -163,10 +170,6 @@ public class PostgresCardRepository implements CardRepository {
     public static final String QUERY_SET_DECK_ZERO = """
                 UPDATE cards SET deck = FALSE WHERE usertoken = ? AND (cardID != ? OR cardID = ? OR cardID = ? or cardID = ?)
             """;
-
-    public static final String QUERY_SET_DECK = """
-                UPDATE cards SET deck = TRUE WHERE (cardID = ? OR cardID = ? or cardID = ? or cardID = ?) AND usertoken = ?
-            """;
     @Override
     public void resetDeck(String token, List<String> cid){
         try(Connection c = dataSource.getConnection()){
@@ -182,6 +185,9 @@ public class PostgresCardRepository implements CardRepository {
             throw new IllegalStateException("Query 'reset deck' failed", e);
         }
     }
+    public static final String QUERY_SET_DECK = """
+                UPDATE cards SET deck = TRUE WHERE (cardID = ? OR cardID = ? or cardID = ? or cardID = ?) AND usertoken = ?
+            """;
     @Override
     public boolean configureDeck(List<String> cards, String uid) {
         try(Connection c = dataSource.getConnection()){
@@ -200,6 +206,178 @@ public class PostgresCardRepository implements CardRepository {
             }
         } catch(SQLException e){
             throw new IllegalStateException("Query ' configure deck' failed", e);
+        }
+    }
+
+    public static final String QUERY_CREATE_DEAL = """
+                INSERT INTO trades(tradeID, cardID, type, minDamage) VALUES (?, ?, ?, ?);
+            """;
+    public static final String QUERY_UPDATE_CARD_IN_DEAL = """
+                UPDATE cards SET inTrade = TRUE WHERE inTrade = FALSE and deck = FALSE and cardID = ? and usertoken = ?
+            """;
+    @Override
+    public boolean createTradingDeal(TradingDeal deal, String token) {
+        try(Connection c = dataSource.getConnection()){
+            try (PreparedStatement ps = c.prepareStatement(QUERY_UPDATE_CARD_IN_DEAL)){
+                String dealID = deal.getDealID().toString();
+                String cardID = deal.getCardID().toString();
+                ps.setString(1, cardID);
+                ps.setString(2, token);
+                int success = ps.executeUpdate();
+                if(success == 1){
+                    try(PreparedStatement ps2 = c.prepareStatement(QUERY_CREATE_DEAL)) {
+                        ps2.setString(1, dealID);
+                        ps2.setString(2, cardID);
+                        ps2.setString(3, deal.getType());
+                        ps2.setFloat(4, deal.getMinDamage());
+                        success = ps2.executeUpdate();
+                        if (success == 1) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        } catch(SQLException e){
+            throw new IllegalStateException("Query 'createTradingDeal' failed",e);
+        }
+        return false;
+    }
+    public static final String QUERY_GET_TRADING_DEALS = """
+            Select * FROM trades
+            """;
+    @Override
+    public List<TradingDeal> getTradingDeals() {
+        List<TradingDeal> deal = new ArrayList<>();
+        try(Connection c = dataSource.getConnection()){
+            try(PreparedStatement ps = c.prepareStatement(QUERY_GET_TRADING_DEALS)){
+                ps.execute();
+                final ResultSet resultSet = ps.getResultSet();
+                while(resultSet.next()){
+                    deal.add(resultToDeal(resultSet));
+                }
+                if(deal.isEmpty()){
+                    return null;
+                }
+            }
+        } catch (SQLException e){
+            throw new IllegalStateException("Query 'getTradingDeals' failed", e);
+        }
+        return deal;
+    }
+    private TradingDeal resultToDeal(ResultSet resultSet) throws SQLException {
+        UUID did = UUID.fromString(resultSet.getString("tradeID"));
+        UUID cid = UUID.fromString(resultSet.getString("cardID"));
+        String type = resultSet.getString("type");
+        float minDamage = resultSet.getFloat("minDamage");
+        TradingDeal td = new TradingDeal(did, cid, type, minDamage);
+        return td;
+    }
+
+    public static final String QUERY_SELECT_CARD_FROM_DEAL = """
+            SELECT cardID from trades WHERE tradeID = ?
+            """;
+    public static final String QUERY_CHANGE_CARD_STATUS = """
+            UPDATE cards SET inTrade = FALSE WHERE cardID = ? AND usertoken = ? AND inTrade = TRUE;
+            """;
+    public static final String QUERY_DELETE_DEAL = """
+            DELETE from trades WHERE tradeID = ?;
+            """;
+    @Override
+    public String deleteDeal(String token, UUID tradingID){
+        try(Connection c = dataSource.getConnection()){
+            String returnString = "";
+            try(PreparedStatement ps1 = c.prepareStatement(QUERY_SELECT_CARD_FROM_DEAL)){
+                ps1.setString(1, tradingID.toString());
+                ps1.execute();
+                final ResultSet resultSet = ps1.getResultSet();
+                resultSet.next();
+                String cardId = resultSet.getString(1);
+                if(cardId == null){
+                    returnString = "No trade with that ID";
+                } else {
+                    try (PreparedStatement ps2 = c.prepareStatement(QUERY_CHANGE_CARD_STATUS)) {
+                        ps2.setString(1, cardId);
+                        ps2.setString(2, token);
+                        int success = ps2.executeUpdate();
+                        if (success == 1) {
+                            try (PreparedStatement ps3 = c.prepareStatement(QUERY_DELETE_DEAL)) {
+                                ps3.setString(1, tradingID.toString());
+                                success = ps3.executeUpdate();
+                                if (success == 1) {
+                                    returnString = "Trade deletion worked";
+                                } else {
+                                    returnString = "Trade deletion didn't work";
+                                }
+                            }
+                        } else {
+                            returnString = "Card doesn't belong to User, or isn't in trade, or card doesn't exist";
+                        }
+                    }
+                }
+                return returnString;
+            }
+        } catch (SQLException e){
+            throw new IllegalStateException("Query 'deleteDeal' failed", e);
+        }
+    }
+
+    public static final String QUERY_GET_CARD_FROM_ID = """
+            SELECT * from cards WHERE cardID = ?
+            """;
+
+    @Override
+    public Card getCardFromID(UUID cardID) {
+        try(Connection c = dataSource.getConnection()){
+            try(PreparedStatement ps = c.prepareStatement(QUERY_GET_CARD_FROM_ID)){
+                ps.setString(1, cardID.toString());
+                ps.execute();
+                final ResultSet resultSet = ps.getResultSet();
+                resultSet.next();
+                return convertResultSetToCard(resultSet);
+            }
+        } catch (SQLException e){
+            throw new IllegalStateException("Card from User does not belong to him or exists");
+        }
+    }
+
+    public static final String QUERY_GET_DEAL_FROM_ID = """
+            SELECT * from trades WHERE tradeID = ?
+            """;
+
+    @Override
+    public TradingDeal getDealFromID(UUID tradingID) {
+        try(Connection c = dataSource.getConnection()){
+            try(PreparedStatement ps = c.prepareStatement(QUERY_GET_DEAL_FROM_ID)){
+                ps.setString(1, tradingID.toString());
+                ps.execute();
+                final ResultSet resultSet = ps.getResultSet();
+                resultSet.next();
+                UUID cardID = UUID.fromString(resultSet.getString("cardID"));
+                String type = resultSet.getString("type");
+                float minDamage = resultSet.getFloat("minDamage");
+                TradingDeal tradingDeal = new TradingDeal(tradingID, cardID, type, minDamage);
+                return tradingDeal;
+            }
+        } catch (SQLException e){
+            throw new IllegalStateException("No deal with tradeID");
+        }
+    }
+    public static final String QUERY_GET_OWNER_FROM_ID = """
+            SELECT usertoken FROM cards WHERE cardID = ?
+            """;
+
+    @Override
+    public String getOwner(String cardID) {
+        try(Connection c = dataSource.getConnection()){
+            try(PreparedStatement ps = c.prepareStatement(QUERY_GET_OWNER_FROM_ID)){
+                ps.setString(1, cardID);
+                ps.execute();
+                final ResultSet resultSet = ps.getResultSet();
+                resultSet.next();
+                return resultSet.getString(1);
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("No card with that ID");
         }
     }
 }

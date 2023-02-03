@@ -1,6 +1,7 @@
 package at.technikum.application.repository;
 
 import at.technikum.application.model.Card;
+import at.technikum.application.model.TradingDeal;
 
 import java.util.List;
 import java.util.UUID;
@@ -15,4 +16,16 @@ public interface CardRepository {
     void changeCardOwner(String cardId, String token);
 
     void resetDeck(String token, List<String> cid);
+
+    boolean createTradingDeal(TradingDeal deal, String token);
+
+    List<TradingDeal> getTradingDeals();
+
+    String deleteDeal(String token, UUID tradingID);
+
+    Card getCardFromID(UUID cardID);
+
+    TradingDeal getDealFromID(UUID tradingID);
+
+    String getOwner(String cardID);
 }

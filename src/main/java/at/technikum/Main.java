@@ -1,11 +1,13 @@
 package at.technikum;
 
 import at.technikum.application.config.DbConnector;
+import at.technikum.application.controller.RestBattleController;
 import at.technikum.application.controller.RestCardController;
 import at.technikum.application.controller.RestUserController;
 import at.technikum.application.repository.PostgresCardRepository;
 import at.technikum.application.repository.PostgresUserRepository;
 import at.technikum.application.router.Router;
+import at.technikum.application.service.BattleService;
 import at.technikum.application.service.CardService;
 import at.technikum.application.service.UserService;
 import at.technikum.httpserver.HttpServer;
@@ -16,6 +18,8 @@ public class Main {
         DbConnector dataSource = DataSource.getInstance();
         UserService userService = new UserService(new PostgresUserRepository(dataSource));
         CardService cardService = new CardService(new PostgresCardRepository(dataSource));
+        BattleService battleService = new BattleService();
+        RestBattleController restBattleController = new RestBattleController(battleService);
         RestUserController restUserController = new RestUserController(userService);
         RestCardController restCardController = new RestCardController(cardService);
 
@@ -23,6 +27,8 @@ public class Main {
         restUserController.listRoutes()
                 .forEach(router::registerRoute);
         restCardController.listRoutes().
+                forEach(router::registerRoute);
+        restBattleController.listRoutes().
                 forEach(router::registerRoute);
 
         HttpServer server = new HttpServer(router);

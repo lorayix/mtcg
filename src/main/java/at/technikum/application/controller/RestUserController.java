@@ -69,7 +69,51 @@ public class RestUserController implements Controller {
         }
         return response;
     }
+    public Response tokenValidation(RequestContext requestContext) throws JsonProcessingException {
+        String token = requestContext.getToken();
+        String username = requestContext.getIdentifier();
+        User user = userService.findUserByUsername(username);
+        Response response = new Response();
+        if (user == null) {
+            response.setHttpStatus(HttpStatus.UNAUTHORIZED);
+            response.setBody("User hasn't been found");
+        } else {
+            if (token.contains(username)) {
+                System.out.println(requestContext.getHttpVerb());
+                if (requestContext.getHttpVerb().equals("GET")) {
+                    response = getData(username, token);
+                } else if (requestContext.getHttpVerb().equals("PUT")) {
+                    response = updateData(token, requestContext);
+                }
 
+            } else {
+                response.setHttpStatus(HttpStatus.UNAUTHORIZED);
+                response.setBody("User token doesn't qualify");
+            }
+        }
+        return response;
+    }
+    private Response getData(String username, String token) throws JsonProcessingException {
+        Response response = new Response();
+        UserData userData = userService.getUserData(username, token);
+        response.setHttpStatus(HttpStatus.OK);
+        String json = new ObjectMapper().writeValueAsString(new UserData(userData.getName(), userData.getBio(), userData.getImage()));
+        response.setBody(json);
+        return response;
+    }
+    private Response updateData(String token, RequestContext requestContext) {
+        Response response = new Response();
+        UserData userData = requestContext.getBodyAs(UserData.class);
+        int success = userService.updateData(token, userData);
+        if (success == 0) {
+            response.setHttpStatus(HttpStatus.OK);
+            response.setBody("Data updated");
+        } else {
+            response.setHttpStatus(HttpStatus.BAD_REQUEST);
+            response.setBody("Data couldn't be updated. Please check if you're logged in");
+        }
+        return response;
+    }
     @Override
     public List<Pair<RouteIdentifier, Route>> listRoutes() {
         List<Pair<RouteIdentifier, Route>> userRoutes = new ArrayList<>();
@@ -95,53 +139,5 @@ public class RestUserController implements Controller {
         ));
 
         return userRoutes;
-    }
-
-    public Response tokenValidation(RequestContext requestContext) throws JsonProcessingException {
-        String token = requestContext.getToken();
-        String username = requestContext.getIdentifier();
-        User user = userService.findUserByUsername(username);
-        Response response = new Response();
-        if (user == null) {
-            response.setHttpStatus(HttpStatus.UNAUTHORIZED);
-            response.setBody("User hasn't been found");
-        } else {
-            if (token.contains(username)) {
-                System.out.println(requestContext.getHttpVerb());
-                if (requestContext.getHttpVerb().equals("GET")) {
-                    response = getData(username, token);
-                } else if (requestContext.getHttpVerb().equals("PUT")) {
-                    response = updateData(token, requestContext);
-                }
-
-            } else {
-                response.setHttpStatus(HttpStatus.UNAUTHORIZED);
-                response.setBody("User token doesn't qualify");
-            }
-        }
-        return response;
-    }
-
-    private Response getData(String username, String token) throws JsonProcessingException {
-        Response response = new Response();
-        UserData userData = userService.getUserData(username, token);
-        response.setHttpStatus(HttpStatus.OK);
-        String json = new ObjectMapper().writeValueAsString(new UserData(userData.getName(), userData.getBio(), userData.getImage()));
-        response.setBody(json);
-        return response;
-    }
-
-    private Response updateData(String token, RequestContext requestContext) {
-        Response response = new Response();
-        UserData userData = requestContext.getBodyAs(UserData.class);
-        int success = userService.updateData(token, userData);
-        if (success == 0) {
-            response.setHttpStatus(HttpStatus.OK);
-            response.setBody("Data updated");
-        } else {
-            response.setHttpStatus(HttpStatus.BAD_REQUEST);
-            response.setBody("Data couldn't be updated. Please check if you're logged in");
-        }
-        return response;
     }
 }

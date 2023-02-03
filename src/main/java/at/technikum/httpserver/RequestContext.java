@@ -103,7 +103,6 @@ public class RequestContext {
             String token = tokenArray[1];
             return token;
         }
-        throw
-                new BadRequestException("No token was delivered");
+        throw new BadRequestException("No token was delivered");
     }
 }
