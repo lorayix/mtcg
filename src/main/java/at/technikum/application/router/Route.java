@@ -7,7 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.IOException;
 
 public interface Route {
-    Response process(RequestContext requestContext) throws IOException;
+    Response process(RequestContext requestContext) throws IOException, InterruptedException;
 
 }
 

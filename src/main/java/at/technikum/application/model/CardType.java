@@ -1,18 +1,18 @@
 package at.technikum.application.model;
 
 public enum CardType {
-    WATERGOBLIN("Water", "Goblin", "WaterGoblin"),
-    FIREGOBLIN("Fire", "Goblin", "FireGoblin"),
-    REGULARGOBLIN("Regular", "Goblin", "RegularGoblin"),
-    WATERTROLL("Water", "Troll", "WaterTroll"),
-    FIRETROLL("Fire", "Troll", "FireTroll"),
-    REGULARTROLL("Regular", "Troll", "RegularTroll"),
-    WATERELF("Water", "Elf", "WaterElf"),
-    FIREELF("Fire", "Elf", "FireElf"),
-    REGULARELF("Regular", "Elf", "RegularElf"),
-    WATERSPELL("Water", "Spell", "WaterSpell"),
-    FIRESPELL("Fire", "Spell","FireSpell"),
-    REGULARSPELL("Regular", "Spell", "RegularSpell"),
+    WATERGOBLIN("WaterGoblin"),
+    FIREGOBLIN("FireGoblin"),
+    REGULARGOBLIN("RegularGoblin"),
+    WATERTROLL("WaterTroll"),
+    FIRETROLL("FireTroll"),
+    REGULARTROLL("RegularTroll"),
+    WATERELF("WaterElf"),
+    FIREELF("FireElf"),
+    REGULARELF("RegularElf"),
+    WATERSPELL("WaterSpell"),
+    FIRESPELL("FireSpell"),
+    REGULARSPELL("RegularSpell"),
     KNIGHT("Knight"),
     DRAGON("Dragon"),
     ORK("Ork"),
@@ -23,21 +23,29 @@ public enum CardType {
     private final String type;
     private final String name;
 
-    CardType(String element, String type, String name){
-        this.element = element;
-        this.type = type;
+    CardType(String name){
+        String[] splitstr;
+        if(name.contains("Water")){
+            splitstr = name.split("Water");
+            this.element = "Water";
+            this.type = splitstr[1];
+        } else if(name.contains("Fire")){
+            splitstr = name.split("Fire");
+            this.element = "Fire";
+            this.type = splitstr[1];
+        } else if(name.contains("Regular")){
+            splitstr = name.split("Regular");
+            this.element = "Regular";
+            this.type = splitstr[1];
+        } else {
+            this.element = "";
+            this.type = name;
+        }
         this.name = name;
     }
-    CardType(String name) {
-        this.element = "";
-        this.type = "";
-        this.name = name;
-    }
-
     public String getElement(){
         return element;
     }
-
     public String getName(){
         return name;
     }

@@ -18,18 +18,6 @@ public class UserData {
 
     public  UserData(){}
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public void setBio(String bio) {
-        this.bio = bio;
-    }
-
-    public void setImage(String image) {
-        this.image = image;
-    }
-
     public String getName() {
         return name;
     }

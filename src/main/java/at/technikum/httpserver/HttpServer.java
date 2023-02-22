@@ -3,6 +3,7 @@ package at.technikum.httpserver;
 import at.technikum.application.router.Route;
 import at.technikum.application.router.RouteIdentifier;
 import at.technikum.application.router.Router;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -47,7 +48,7 @@ public class HttpServer extends Thread {
                                 response = new Response();
                                 response.setBody(badRequestException.getMessage());
                                 response.setHttpStatus(HttpStatus.BAD_REQUEST);
-                            } catch (IllegalStateException e) {
+                            } catch (IllegalStateException | InterruptedException e) {
                                 response = new Response();
                                 response.setBody(e.getMessage());
                                 response.setHttpStatus(HttpStatus.INTERNAL_SERVER_ERROR);
@@ -55,7 +56,6 @@ public class HttpServer extends Thread {
 
                             BufferedWriter w = new BufferedWriter(
                                     new OutputStreamWriter(socket.getOutputStream()));
-                            //w.write("HTTP/1.1 ");
                             w.write("HTTP/1.1 " + response.getHttpStatus().getStatusCode() + " " + response.getHttpStatus().getStatusMessage());
                             w.newLine();
                             // write headers
@@ -65,9 +65,6 @@ public class HttpServer extends Thread {
                             w.newLine();
                             w.close();
                             w.flush();
-                            /*Thread.sleep(100);
-                        } catch (InterruptedException e){
-                            throw new RuntimeException(e);*/
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
@@ -83,7 +80,7 @@ public class HttpServer extends Thread {
         HeaderParser headerParser = new HeaderParser();
         RequestContext requestContext = new RequestContext();
 
-        String input = "";
+        String input;
         String versionString = bufferedReader.readLine();
         final String[] splitVersionString = versionString.split(" ");
         requestContext.setHttpVerb(splitVersionString[0]);
@@ -103,7 +100,6 @@ public class HttpServer extends Thread {
             requestContext.setPath(splitPath[0]);
             requestContext.setIdentifier(splitPath[1]);
         }
-
 
         do {
             input = bufferedReader.readLine();

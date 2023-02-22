@@ -23,7 +23,7 @@ import static java.lang.Float.parseFloat;
 
 public class RestCardController implements Controller {
     private final CardService cardService;
-    private UserService userService = new UserService(new PostgresUserRepository(DataSource.getInstance()));
+    private final UserService userService = new UserService(new PostgresUserRepository(DataSource.getInstance()));
 
     public RestCardController(CardService cardService) {
         this.cardService = cardService;

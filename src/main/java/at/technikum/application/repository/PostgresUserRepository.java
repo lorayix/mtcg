@@ -199,9 +199,7 @@ public class PostgresUserRepository implements UserRepository {
         int elo =  resultSet.getInt("elo");
         int wins = resultSet.getInt("wins");
         int losses = resultSet.getInt("losses");
-
-        UserStats userStats = new UserStats(name, elo, wins, losses);
-        return userStats;
+        return new UserStats(name, elo, wins, losses);
     }
     @Override
     public List<UserStats> getScoreboard(){
@@ -237,6 +235,37 @@ public class PostgresUserRepository implements UserRepository {
             }
         } catch(SQLException e){
             throw new IllegalStateException("DB query 'getScoreByUsername' failed", e);
+        }
+    }
+
+    public static final String QUERY_ADD_WIN_TO_USER = """
+                UPDATE users SET wins = wins + 1, elo = elo + 3 WHERE token = ?;
+            """;
+
+    @Override
+    public void userWin(String winner) {
+        try(Connection c = dataSource.getConnection()){
+            try(PreparedStatement ps = c.prepareStatement(QUERY_ADD_WIN_TO_USER)){
+                ps.setString(1, winner);
+                ps.execute();
+            }
+        } catch (SQLException e){
+            throw new IllegalStateException("DB query 'add win to user' failed", e );
+        }
+    }
+    public static final String QUERY_ADD_LOSS_TO_USER = """
+                UPDATE users SET losses = losses + 1, elo = elo - 5 WHERE token = ?;
+            """;
+
+    @Override
+    public void userLoss(String loser) {
+        try(Connection c = dataSource.getConnection()){
+            try(PreparedStatement ps = c.prepareStatement(QUERY_ADD_LOSS_TO_USER)){
+                ps.setString(1, loser);
+                ps.execute();
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("DB query 'add win to user' failed", e);
         }
     }
 }

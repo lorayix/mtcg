@@ -3,7 +3,6 @@ package at.technikum.application.repository;
 import at.technikum.application.config.DbConnector;
 import at.technikum.application.model.Card;
 import at.technikum.application.model.TradingDeal;
-import at.technikum.application.model.UserStats;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -164,7 +163,7 @@ public class PostgresCardRepository implements CardRepository {
                 return cards;
             }
         } catch (SQLException e){
-            throw new IllegalStateException("DB query 'ps' failed", e);
+            throw new IllegalStateException("DB query 'show deck' failed", e);
         }
     }
     public static final String QUERY_SET_DECK_ZERO = """
@@ -198,11 +197,7 @@ public class PostgresCardRepository implements CardRepository {
                 ps.setString(4, cards.get(3));
                 ps.setString(5, uid);
                 int success = ps.executeUpdate();
-                if(success == 4){
-                    return true;
-                } else {
-                    return false;
-                }
+                return success == 4;
             }
         } catch(SQLException e){
             throw new IllegalStateException("Query ' configure deck' failed", e);
@@ -269,8 +264,7 @@ public class PostgresCardRepository implements CardRepository {
         UUID cid = UUID.fromString(resultSet.getString("cardID"));
         String type = resultSet.getString("type");
         float minDamage = resultSet.getFloat("minDamage");
-        TradingDeal td = new TradingDeal(did, cid, type, minDamage);
-        return td;
+        return new TradingDeal(did, cid, type, minDamage);
     }
 
     public static final String QUERY_SELECT_CARD_FROM_DEAL = """
@@ -285,7 +279,7 @@ public class PostgresCardRepository implements CardRepository {
     @Override
     public String deleteDeal(String token, UUID tradingID){
         try(Connection c = dataSource.getConnection()){
-            String returnString = "";
+            String returnString;
             try(PreparedStatement ps1 = c.prepareStatement(QUERY_SELECT_CARD_FROM_DEAL)){
                 ps1.setString(1, tradingID.toString());
                 ps1.execute();
@@ -355,8 +349,7 @@ public class PostgresCardRepository implements CardRepository {
                 UUID cardID = UUID.fromString(resultSet.getString("cardID"));
                 String type = resultSet.getString("type");
                 float minDamage = resultSet.getFloat("minDamage");
-                TradingDeal tradingDeal = new TradingDeal(tradingID, cardID, type, minDamage);
-                return tradingDeal;
+                return new TradingDeal(tradingID, cardID, type, minDamage);
             }
         } catch (SQLException e){
             throw new IllegalStateException("No deal with tradeID");

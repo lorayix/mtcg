@@ -9,7 +9,6 @@ import java.util.List;
 public class RequestContext {
 
     private static final String CONTENT_LENGTH_HEADER_NAME = "Content-Length";
-
     private String httpVerb;
     private String path;
     private List<Header> headers;
@@ -99,7 +98,7 @@ public class RequestContext {
             }
         }
         if(!tokenValue.isBlank()) {
-            final String[] tokenArray = tokenValue.split("Bearer ");
+            final String[] tokenArray = tokenValue.split("Basic ");
             String token = tokenArray[1];
             return token;
         }

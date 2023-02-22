@@ -1,15 +1,14 @@
 package at.technikum.application.controller;
 
+import at.technikum.application.Battle.Battle;
 import at.technikum.application.config.DataSource;
-import at.technikum.application.model.User;
-import at.technikum.application.model.UserData;
 import at.technikum.application.model.UserStats;
+import at.technikum.application.repository.PostgresCardRepository;
 import at.technikum.application.repository.PostgresUserRepository;
 import at.technikum.application.repository.UserRepository;
 import at.technikum.application.router.Controller;
 import at.technikum.application.router.Route;
 import at.technikum.application.router.RouteIdentifier;
-import at.technikum.application.service.BattleService;
 import at.technikum.application.util.Pair;
 import at.technikum.httpserver.HttpStatus;
 import at.technikum.httpserver.RequestContext;
@@ -17,14 +16,17 @@ import at.technikum.httpserver.Response;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class RestBattleController implements Controller {
-    private final BattleService battleService;
-    public RestBattleController(BattleService battleService) {
-        this.battleService = battleService;
+    private final List<String> lobby;
+    public RestBattleController() {
+        lobby = new ArrayList<>();
     }
+    PostgresCardRepository cardRep = new PostgresCardRepository(DataSource.getInstance());
     UserRepository uRepo = new PostgresUserRepository(DataSource.getInstance());
     private String statsToString(UserStats stats) throws JsonProcessingException {
         return new ObjectMapper().writeValueAsString(new UserStats(stats.getName(), stats.getElo(), stats.getWins(), stats.getLosses()));
@@ -48,8 +50,35 @@ public class RestBattleController implements Controller {
         response.setHttpStatus(HttpStatus.OK);
         return response;
     }
-    public Response enterLobby(RequestContext requestContext){
-        return null;
+    public Response enterLobby(RequestContext requestContext) throws InterruptedException, IOException {
+        String token = requestContext.getToken();
+        Response response = new Response();
+        synchronized (this){
+            if(lobby.contains(token)){
+                response.setHttpStatus(HttpStatus.BAD_REQUEST);
+                response.setBody("This user is already enqued");
+            } else {
+                lobby.add(token);
+            }
+        }
+        while((lobby.size() % 2) != 0){
+        //wait();
+        }
+        Battle battle = new Battle(lobby.get(0), lobby.get(1), cardRep, uRepo);
+        synchronized (this){
+            lobby.remove(1);
+            lobby.remove(0);
+        }
+        String log = battle.start();
+        if(log.isEmpty()){
+            response.setHttpStatus(HttpStatus.NO_CONTENT);
+            response.setBody("Something went wrong");
+        } else {
+            response.setHttpStatus(HttpStatus.OK);
+
+            response.setBody(log);
+        }
+        return response;
     }
 
     @Override

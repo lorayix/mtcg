@@ -7,7 +7,6 @@ import at.technikum.application.controller.RestUserController;
 import at.technikum.application.repository.PostgresCardRepository;
 import at.technikum.application.repository.PostgresUserRepository;
 import at.technikum.application.router.Router;
-import at.technikum.application.service.BattleService;
 import at.technikum.application.service.CardService;
 import at.technikum.application.service.UserService;
 import at.technikum.httpserver.HttpServer;
@@ -18,8 +17,7 @@ public class Main {
         DbConnector dataSource = DataSource.getInstance();
         UserService userService = new UserService(new PostgresUserRepository(dataSource));
         CardService cardService = new CardService(new PostgresCardRepository(dataSource));
-        BattleService battleService = new BattleService();
-        RestBattleController restBattleController = new RestBattleController(battleService);
+        RestBattleController restBattleController = new RestBattleController();
         RestUserController restUserController = new RestUserController(userService);
         RestCardController restCardController = new RestCardController(cardService);
 

@@ -16,5 +16,6 @@ public interface UserRepository {
     void subtractCoinsForPackage(int coins, String token);
     List<UserStats> getScoreboard();
     UserStats getUserScore(String token);
-
+    void userWin(String winner);
+    void userLoss(String loser);
 }
