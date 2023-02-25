@@ -1,4 +1,4 @@
-package at.technikum.application.Battle;
+package at.technikum.application.service;
 
 
 import at.technikum.application.model.Card;
@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class BattleTest {
+public class BattleServiceTest {
 
     @Mock
     private UserRepository userRepository;
@@ -28,7 +28,7 @@ public class BattleTest {
             deck_p2.add(new Card());
         }
         CardRepository cardRepository = mock(CardRepository.class);
-        Battle battle = new Battle("player1", "player2", cardRepository, userRepository);
+        BattleService battle = new BattleService("player1", "player2", cardRepository, userRepository);
         when(cardRepository.showDeck("player1")).thenReturn(deck_p1);
         when(cardRepository.showDeck("player2")).thenReturn(deck_p2);
 
@@ -42,7 +42,7 @@ public class BattleTest {
         String element1 = "Regular";
         String element2 = "Water";
 
-        boolean stronger = Battle.beats(element1, element2);
+        boolean stronger = BattleService.beats(element1, element2);
 
         assertEquals(true, stronger);
     }
@@ -52,7 +52,7 @@ public class BattleTest {
         String element1 = "Water";
         String element2 = "Regular";
 
-        boolean stronger = Battle.beats(element1, element2);
+        boolean stronger = BattleService.beats(element1, element2);
         assertEquals(false, stronger);
     }
 
@@ -61,7 +61,7 @@ public class BattleTest {
         String element1 = "Water";
         String element2 = "Water";
 
-        boolean stronger = Battle.beats(element1, element2);
+        boolean stronger = BattleService.beats(element1, element2);
         assertEquals(false, stronger);
     }
 
@@ -70,7 +70,7 @@ public class BattleTest {
         Card card1 = new Card(UUID.randomUUID(), "WaterSpell", 20);
         Card card2 = new Card(UUID.randomUUID(), "Knight", 50);
 
-        Card loser = Battle.round(card1, card2, false);
+        Card loser = BattleService.round(card1, card2, false);
 
         assertEquals(loser, card2);
     }
@@ -78,7 +78,7 @@ public class BattleTest {
     void knightDrownsByWaterSpell(){
         Card card1 = new Card(UUID.randomUUID(), "Knight", 50);
         Card card2 = new Card(UUID.randomUUID(), "WaterSpell", 20);
-        Card loser = Battle.round(card1, card2, false);
+        Card loser = BattleService.round(card1, card2, false);
 
         assertEquals(loser, card1);
     }
@@ -88,7 +88,7 @@ public class BattleTest {
         Card card1 = new Card(UUID.randomUUID(), "Dragon", 20);
         Card card2 = new Card(UUID.randomUUID(), "FireGoblin", 40);
 
-        Card loser = Battle.round(card1, card2, false);
+        Card loser = BattleService.round(card1, card2, false);
         assertEquals(loser, card2);
     }
 
@@ -97,7 +97,7 @@ public class BattleTest {
         Card card1 = new Card(UUID.randomUUID(), "WaterElf", 10);
         Card card2 = new Card(UUID.randomUUID(), "FireElf", 120);
 
-        Card loser = Battle.round(card1, card2, true);
+        Card loser = BattleService.round(card1, card2, true);
 
         assertEquals(loser, card2);
     }
@@ -107,7 +107,7 @@ public class BattleTest {
         Card card1 = new Card(UUID.randomUUID(), "WaterElf", 10);
         Card card2 = new Card(UUID.randomUUID(), "FireElf", 120);
 
-        Card loser = Battle.round(card1, card2, false);
+        Card loser = BattleService.round(card1, card2, false);
 
         assertEquals(loser, card1);
     }
@@ -122,7 +122,7 @@ public class BattleTest {
         }
         CardRepository cardRepository = mock(CardRepository.class);
         UserRepository userRepository = mock(UserRepository.class);
-        Battle battle = new Battle("player1-mtcgToken", "player2-mtcgToken", cardRepository, userRepository);
+        BattleService battle = new BattleService("player1-mtcgToken", "player2-mtcgToken", cardRepository, userRepository);
         when(cardRepository.showDeck("player1-mtcgToken")).thenReturn(deck_p1);
         when(cardRepository.showDeck("player2-mtcgToken")).thenReturn(deck_p2);
 

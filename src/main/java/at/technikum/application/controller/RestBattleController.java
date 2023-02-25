@@ -1,6 +1,6 @@
 package at.technikum.application.controller;
 
-import at.technikum.application.Battle.Battle;
+import at.technikum.application.service.BattleService;
 import at.technikum.application.config.DataSource;
 import at.technikum.application.model.UserStats;
 import at.technikum.application.repository.PostgresCardRepository;
@@ -20,12 +20,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
 
-import static java.lang.Thread.sleep;
-
 public class RestBattleController implements Controller {
     private static final List<String> lobby = new ArrayList<>();
     static final Object monitor = new Object();
-    private static String log;
+
     public RestBattleController() { }
     PostgresCardRepository cardRep = new PostgresCardRepository(DataSource.getInstance());
     UserRepository uRepo = new PostgresUserRepository(DataSource.getInstance());
@@ -53,9 +51,10 @@ public class RestBattleController implements Controller {
     }
 
     public Response enterFight(RequestContext requestContext) throws InterruptedException {
-
         String token = requestContext.getToken();
         Response response = new Response();
+        BattleService battle;
+        String log;
 
         synchronized(monitor){
             if(lobby.contains(token)){
@@ -68,11 +67,9 @@ public class RestBattleController implements Controller {
             } else {
                 monitor.notify();
             }
+            battle = new BattleService(lobby.get(0), lobby.get(1), cardRep, uRepo);
+            log = battle.start();
         }
-
-        Battle battle = new Battle(lobby.get(0), lobby.get(1), cardRep, uRepo);
-
-        log = battle.start();
 
         if(log.isEmpty()){
             response.setHttpStatus(HttpStatus.NO_CONTENT);
