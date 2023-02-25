@@ -59,13 +59,6 @@ public class RequestContext {
     }
 
     public int getContentLength() {
-        /*
-        final Optional<Header> optionalHeader = headers.stream()
-                .filter(header -> header.getName().equals("Content-Length")).findFirst();
-        final Optional<String> optionalHeaderValue = optionalHeader.map(Header::getValue);
-        final Optional<Integer> optionalInteger = optionalHeaderValue.map(Integer::parseInt);
-        return optionalInteger.orElse(0);
-        */
         return headers.stream()
                 .filter(header -> header.getName().equals(CONTENT_LENGTH_HEADER_NAME)).findFirst()
                 .map(Header::getValue)

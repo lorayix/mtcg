@@ -52,15 +52,14 @@ public class RestUserController implements Controller {
 
     public Response login(Credentials credentials) {
         User user = userService.findUserByUsername(credentials.getUsername());
-        int loginOkay;
+        boolean loginOkay;
         if (user == null) {
-            throw new BadRequestException("User with username " + credentials.getUsername() + "doesn't exist");
+            throw new BadRequestException("User with username " + credentials.getUsername() + " doesn't exist");
         } else {
-            User user1 = new User(credentials.getUsername(), credentials.getPassword());
-            loginOkay = userService.loginUser(user1);
+            loginOkay = userService.loginUser(credentials);
         }
         Response response = new Response();
-        if (loginOkay == 0) {
+        if (loginOkay) {
             response.setHttpStatus(HttpStatus.OK);
             response.setBody("Login successful");
         } else {
@@ -104,8 +103,8 @@ public class RestUserController implements Controller {
     private Response updateData(String token, RequestContext requestContext) {
         Response response = new Response();
         UserData userData = requestContext.getBodyAs(UserData.class);
-        int success = userService.updateData(token, userData);
-        if (success == 0) {
+        boolean success = userService.updateData(token, userData);
+        if (success) {
             response.setHttpStatus(HttpStatus.OK);
             response.setBody("Data updated");
         } else {

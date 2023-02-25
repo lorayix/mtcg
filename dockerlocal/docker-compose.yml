@@ -14,6 +14,17 @@ services:
     volumes:
       - 'db_mtcg:/var/lib/postgresql/data'
 
+  testdb:
+    image: 'postgres:latest'
+    environment:
+      POSTGRES_USER: 'mctg_admin'
+      POSTGRES_PASSWORD: "mctg123"
+      POSTGRES_DB: "mctg_test"
+    ports:
+      - '5431:5432'
+    volumes:
+      - 'testdb:/var/lib/postgresql/data'
+
   adminer:
     image: 'adminer'
     ports:
@@ -22,5 +33,7 @@ services:
 
 volumes:
   db_mtcg:
+    driver: local
+  testdb:
     driver: local
 # Use postgres/example user/password credentials

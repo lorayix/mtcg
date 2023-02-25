@@ -10,9 +10,7 @@ import at.technikum.application.router.RouteIdentifier;
 import at.technikum.application.service.CardService;
 import at.technikum.application.service.UserService;
 import at.technikum.application.util.Pair;
-import at.technikum.httpserver.HttpStatus;
-import at.technikum.httpserver.RequestContext;
-import at.technikum.httpserver.Response;
+import at.technikum.httpserver.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -22,6 +20,8 @@ import java.util.*;
 import static java.lang.Float.parseFloat;
 
 public class RestCardController implements Controller {
+    private final int PACKAGESIZE = 5;
+    private final String ADMINTOKEN = "admin-mtcgToken";
     private final CardService cardService;
     private final UserService userService = new UserService(new PostgresUserRepository(DataSource.getInstance()));
 
@@ -30,9 +30,7 @@ public class RestCardController implements Controller {
     }
 
     public Response createPackage(RequestContext requestContext) throws IOException {
-        System.out.println("Body to create: " + requestContext.getBody());
         List<Card> cards = getCards(requestContext.getBody());
-        System.out.println(cards.get(1).getName());
         String token = requestContext.getToken();
         return createPackage(cards, token);
     }
@@ -52,12 +50,14 @@ public class RestCardController implements Controller {
         System.out.println(cards.get(0).getName());
         return cards;
     }
-    private Response createPackage(List<Card> cards, String token){
+    public Response createPackage(List<Card> cards, String token){
         Response response = new Response();
-        if(!token.equals("admin-mtcgToken")){
-            response.setHttpStatus(HttpStatus.UNAUTHORIZED);
-            response.setBody("Bad request - not authorized to create new packages");
+        if(!token.equals(ADMINTOKEN)){
+            throw new NotAuthorizedException("This user is not authorized to create new packages");
         } else {
+            if(cards.size() !=  PACKAGESIZE){
+                throw new BadRequestException("Package has not the required amount of cards");
+            }
             UUID packageID = UUID.randomUUID();
             int size = 0;
             while(size < cards.size()){

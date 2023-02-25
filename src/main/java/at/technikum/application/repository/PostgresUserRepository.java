@@ -2,6 +2,7 @@ package at.technikum.application.repository;
 
 
 import at.technikum.application.config.DbConnector;
+import at.technikum.application.model.Credentials;
 import at.technikum.application.model.User;
 import at.technikum.application.model.UserData;
 import at.technikum.application.model.UserStats;
@@ -89,24 +90,20 @@ public class PostgresUserRepository implements UserRepository {
                 UPDATE users SET loggedIn = TRUE WHERE username = ? AND password = ? AND loggedIn = FALSE;
             """;
     @Override
-    public int loginUser(User user) {
+    public boolean loginUser(Credentials user) {
         try (Connection c = dataSource.getConnection()) {
             try (PreparedStatement ps = c.prepareStatement(QUERY_LOGIN)) {
                 ps.setString(1, user.getUsername());
                 ps.setString(2, String.valueOf(user.getPassword().hashCode()));
                 int state = ps.executeUpdate();
-                if (state != 1) {
-                    return 1;
-                } else {
-                    return 0;
-                }
+                return state == 1;
             }
         } catch (SQLException e) {
             throw new IllegalStateException("DB query 'loginUser' failed", e);
         }
     }
     public static final String QUERY_GET_USERDATA = """
-                SELECT name, bio, image FROM users WHERE username = ? AND token = ? AND loggedIN = TRUE;
+                SELECT name, bio, image FROM users WHERE username = ? AND token = ?;
             """;
     @Override
     public UserData getUserData(String username, String token) {
@@ -131,10 +128,10 @@ public class PostgresUserRepository implements UserRepository {
         return userData;
     }
     public static final String QUERY_UPDATE_USERDATA = """
-                UPDATE users SET name = ?, bio = ?, image = ? WHERE token = ?
+                UPDATE users SET name = ?, bio = ?, image = ? WHERE token = ? AND loggedIn = true;
             """;
     @Override
-    public int updateData(String token, UserData userData) {
+    public boolean updateData(String token, UserData userData) {
         String name = userData.getName();
         String bio = userData.getBio();
         String image = userData.getImage();
@@ -145,11 +142,7 @@ public class PostgresUserRepository implements UserRepository {
                 ps.setString(3, image);
                 ps.setString(4, token);
                 int state = ps.executeUpdate();
-                if(state != 1) {
-                    return 1;
-                } else {
-                    return 0;
-                }
+                return state == 1;
             }
         } catch (SQLException e){
             throw new IllegalStateException("DB query 'updateData' failed");

@@ -1,11 +1,8 @@
 package at.technikum.application.Battle;
 
-import at.technikum.application.config.DataSource;
 import at.technikum.application.model.Card;
 import at.technikum.application.model.CardType;
 import at.technikum.application.repository.CardRepository;
-import at.technikum.application.repository.PostgresCardRepository;
-import at.technikum.application.repository.PostgresUserRepository;
 import at.technikum.application.repository.UserRepository;
 
 import java.util.*;
@@ -31,8 +28,10 @@ public class Battle {
         return deck.get(number);
     }
 
-    public static boolean isStronger(String element1, String element2){
-        if((element1 == "Regular" && element2 == "Water") || (element1 == "Fire" && element2 == "Regular") || (element1 == "Water" && element2 == "Fire")){
+    public static boolean beats(String element1, String element2){
+        if((Objects.equals(element1, "Regular") && Objects.equals(element2, "Water")) ||
+                (Objects.equals(element1, "Fire") && Objects.equals(element2, "Regular")) ||
+                (Objects.equals(element1, "Water") && Objects.equals(element2, "Fire"))){
             return true;
         }
         return false;
@@ -45,10 +44,10 @@ public class Battle {
         String c2_element = card2.returnCardType().getElement();
         Card stronger;
         Card weaker;
-        if(isStronger(c1_element, c2_element)){
+        if(beats(c1_element, c2_element)){
             stronger = card1;
             weaker = card2;
-        } else if (isStronger(c2_element, c1_element)) {
+        } else if (beats(c2_element, c1_element)) {
             stronger = card2;
             weaker = card1;
         } else {
@@ -62,13 +61,19 @@ public class Battle {
         return map;
     }
 
-    public static boolean isWinner(float c1_damage, float c2_damage, CardType c1, CardType c2){
-        if(c1_damage > c2_damage ||
-                (c1 == CardType.DRAGON && c2.getType().contains("Goblin")) ||
+    public static boolean isUnbeatable(float c1_damage, float c2_damage, CardType c1, CardType c2){
+        if((c1 == CardType.DRAGON && c2.getType().contains("Goblin")) ||
                 (c1 == CardType.WIZZARD && c2 == CardType.ORK) ||
                 (c1 == CardType.WATERSPELL && c2 == CardType.KNIGHT) ||
                 (c1.getType().contains("Spell") && c2 == CardType.KRAKEN) ||
                 (c1 == CardType.FIREELF && c2 == CardType.DRAGON)){
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean isStronger(float c1, float c2){
+        if(c1 > c2){
             return true;
         }
         return false;
@@ -93,19 +98,26 @@ public class Battle {
             c1_damage = card1.getDamage();
             c2_damage = card2.getDamage();
         }
-        if(isWinner(c1_damage, c2_damage, c1, c2)){
+        if(isUnbeatable(c1_damage, c2_damage, c1, c2)){
             loser = card2;
-        } else if(isWinner(c2_damage, c1_damage, c2, c1)){
+        } else if(isUnbeatable(c2_damage, c1_damage, c2, c1)){
             loser = card1;
         } else {
-            loser = null;
+            if(isStronger(c1_damage, c2_damage)){
+                loser = card2;
+            } else if(isStronger(c2_damage, c1_damage)){
+                loser = card1;
+            }
+            else {
+                loser = null;
+            }
         }
         return loser;
     }
     public String start(){
         List<Card> deck_p1 = cardRep.showDeck(player1);
         List<Card> deck_p2 = cardRep.showDeck(player2);
-        String log = null;
+        String log = "";
         if((deck_p2.size() == deck_p1.size()) && deck_p1.size() == DECKSIZE){
             System.out.println("Battle can start, decks have been collected");
             Card losing;
@@ -117,7 +129,7 @@ public class Battle {
                 } else {
                     losing = round(p1_Card, p2_Card, false);
                 }
-                String key = "Round " + i + " = ";
+                String key = "Round " + (i+1) + " = ";
                 if(losing == null){
                     log += (key + "This round was without a winner or loser \n");
                 } else {
@@ -143,7 +155,7 @@ public class Battle {
                     losingDeck.remove(losing);
                     winningDeck.add(losing);
                     if(deck_p1.isEmpty() || deck_p2.isEmpty()){
-                        log += (key + winner.replace("-mtcgToken", "") + " won this fight after " + i + " rounds");
+                        log += (key + winner.replace("-mtcgToken", "") + " won this fight after " + (i + 1) + " rounds");
                         i = 101;
                         userRep.userWin(winner);
                         userRep.userLoss(loser);

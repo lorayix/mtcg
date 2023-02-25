@@ -10,22 +10,23 @@ import at.technikum.application.router.Controller;
 import at.technikum.application.router.Route;
 import at.technikum.application.router.RouteIdentifier;
 import at.technikum.application.util.Pair;
+import at.technikum.httpserver.BadRequestException;
 import at.technikum.httpserver.HttpStatus;
 import at.technikum.httpserver.RequestContext;
 import at.technikum.httpserver.Response;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+
+import static java.lang.Thread.sleep;
 
 public class RestBattleController implements Controller {
-    private final List<String> lobby;
-    public RestBattleController() {
-        lobby = new ArrayList<>();
-    }
+    private static final List<String> lobby = new ArrayList<>();
+    static final Object monitor = new Object();
+    private static String log;
+    public RestBattleController() { }
     PostgresCardRepository cardRep = new PostgresCardRepository(DataSource.getInstance());
     UserRepository uRepo = new PostgresUserRepository(DataSource.getInstance());
     private String statsToString(UserStats stats) throws JsonProcessingException {
@@ -50,33 +51,40 @@ public class RestBattleController implements Controller {
         response.setHttpStatus(HttpStatus.OK);
         return response;
     }
-    public Response enterLobby(RequestContext requestContext) throws InterruptedException, IOException {
+
+    public Response enterFight(RequestContext requestContext) throws InterruptedException {
+
         String token = requestContext.getToken();
         Response response = new Response();
-        synchronized (this){
+
+        synchronized(monitor){
             if(lobby.contains(token)){
-                response.setHttpStatus(HttpStatus.BAD_REQUEST);
-                response.setBody("This user is already enqued");
-            } else {
+                throw new BadRequestException("User " + token.replace("-mtcgToken", "") + " has already entered the battle queue");
+            }  else {
                 lobby.add(token);
             }
+            if(lobby.size() % 2 != 0){
+                monitor.wait();
+            } else {
+                monitor.notify();
+            }
         }
-        while((lobby.size() % 2) != 0){
-        //wait();
-        }
+
         Battle battle = new Battle(lobby.get(0), lobby.get(1), cardRep, uRepo);
-        synchronized (this){
-            lobby.remove(1);
-            lobby.remove(0);
-        }
-        String log = battle.start();
+
+        log = battle.start();
+
         if(log.isEmpty()){
             response.setHttpStatus(HttpStatus.NO_CONTENT);
             response.setBody("Something went wrong");
         } else {
             response.setHttpStatus(HttpStatus.OK);
-
             response.setBody(log);
+        }
+
+        synchronized (monitor){
+            lobby.remove(1);
+            lobby.remove(0);
         }
         return response;
     }
@@ -97,7 +105,7 @@ public class RestBattleController implements Controller {
 
         battleRoutes.add(new Pair<>(
                 RouteIdentifier.routeIdentifier("/battles", "POST"),
-                this::enterLobby
+                this::enterFight
         ));
         return battleRoutes;
     }
