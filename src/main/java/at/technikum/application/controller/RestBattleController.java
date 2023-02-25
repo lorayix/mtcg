@@ -22,6 +22,7 @@ import java.util.List;
 
 public class RestBattleController implements Controller {
     private static final List<String> lobby = new ArrayList<>();
+    private static String log;
     static final Object monitor = new Object();
 
     public RestBattleController() { }
@@ -53,8 +54,6 @@ public class RestBattleController implements Controller {
     public Response enterFight(RequestContext requestContext) throws InterruptedException {
         String token = requestContext.getToken();
         Response response = new Response();
-        BattleService battle;
-        String log;
 
         synchronized(monitor){
             if(lobby.contains(token)){
@@ -62,13 +61,16 @@ public class RestBattleController implements Controller {
             }  else {
                 lobby.add(token);
             }
-            if(lobby.size() % 2 != 0){
+
+            if(lobby.size() != 2){
                 monitor.wait();
             } else {
+                BattleService battle = new BattleService(lobby.get(0), lobby.get(1), cardRep, uRepo);
+                log = battle.start();
+                lobby.remove(1);
+                lobby.remove(0);
                 monitor.notify();
             }
-            battle = new BattleService(lobby.get(0), lobby.get(1), cardRep, uRepo);
-            log = battle.start();
         }
 
         if(log.isEmpty()){
@@ -79,10 +81,6 @@ public class RestBattleController implements Controller {
             response.setBody(log);
         }
 
-        synchronized (monitor){
-            lobby.remove(1);
-            lobby.remove(0);
-        }
         return response;
     }
 
